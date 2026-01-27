@@ -36,6 +36,42 @@ void init_il2cpp_api(void *handle) {
 #include "il2cpp-api-functions.h"
 
 #undef DO_API
+// ==========================================================
+    // 2. KHU VỰC SỬA LỖI THỦ CÔNG (MANUAL FIX)
+    // ==========================================================
+    
+    // Lấy địa chỉ Base Address
+    uintptr_t base_addr = (uintptr_t)xdl_info(handle, XDL_DI_DLINFO, nullptr);
+    
+    if (base_addr != 0) {
+        LOGI("Manual Fix: Base Address at %p", (void*)base_addr);
+
+        // --- FIX il2cpp_init ---
+        if (!il2cpp_init) {
+            il2cpp_init = (il2cpp_init_t)(base_addr + 0x30B6974); // Số ní tìm được lúc đầu
+            LOGW("Manual Fix: Applied il2cpp_init offset");
+        }
+
+        // --- FIX il2cpp_domain_get (Nguyên nhân Crash) ---
+        if (!il2cpp_domain_get) {
+            il2cpp_domain_get = (il2cpp_domain_get_t)(base_addr + 0x30B7180); // Số mới tìm thấy
+            LOGW("Manual Fix: Applied il2cpp_domain_get offset");
+        }
+
+        // --- FIX il2cpp_domain_get_assemblies (Cần để Dump) ---
+        // Nếu không có dòng này, lúc dump sẽ bị crash hoặc không ra file dump.cs
+        if (!il2cpp_domain_get_assemblies) {
+            il2cpp_domain_get_assemblies = (il2cpp_domain_get_assemblies_t)(base_addr + 0x30B71A4); // Số mới tìm thấy
+            LOGW("Manual Fix: Applied il2cpp_domain_get_assemblies offset");
+        }
+
+        // --- FIX il2cpp_thread_attach (Tùy chọn) ---
+        // Nếu ní thấy game vẫn crash, hãy thử bỏ comment dòng dưới (cần tìm offset cho nó nếu chưa có)
+        // if (!il2cpp_thread_attach) il2cpp_thread_attach = (il2cpp_thread_attach_t)(base_addr + 0x......);
+        
+    } else {
+        LOGE("Manual Fix Failed: Cannot get Base Address!");
+    }
 }
 
 std::string get_method_modifier(uint32_t flags) {
